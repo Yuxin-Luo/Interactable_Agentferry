@@ -114,20 +114,22 @@ class PetController(QObject):
         if self._state == PetState.DEFAULT_FLY:
             self._tick_default_fly()
 
-        # DRAG_PINCH 处理（spec §4.2）
+        # DRAG_PINCH 处理（spec §4.2 + §11 Q5）
         if self._state == PetState.DRAG_PINCH:
-            if signal.pinch_active and signal.pinch_position:
+            if signal.gesture_label == "Open_Palm":
+                # OPEN_PALM 是唯一退出条件（spec §11 Q5）
+                self._state = PetState.OPEN_PALM
+                self._last_gesture_change_ts = time.time()
+            elif signal.pinch_active and signal.pinch_position:
                 # 跟随 pinch 位置
                 self._pet_pos = signal.pinch_position - QPoint(self._pet_size // 2, self._pet_size // 2)
-                # 钳制到窗口内
                 self._pet_pos.setX(max(0, min(self._pet_pos.x(), self._win_w - self._pet_size)))
                 self._pet_pos.setY(max(0, min(self._pet_pos.y(), self._win_h - self._pet_size)))
+                # 其他手势：忽略，继续保持 DRAG_PINCH
             else:
-                # pinch 释放 → 回 DEFAULT_FLY
-                self._state = PetState.DEFAULT_FLY
-                self._current_target = self._face_center  # 飞向头部
-                if self._current_target:
-                    self._pet_pos = self._flight.step(self._pet_pos, self._current_target, dt=0.016)
+                # pinch 物理释放但未比 OPEN_PALM → 保持 DRAG_PINCH 直到 OPEN_PALM
+                # 此时不更新位置（停在原地），等 OPEN_PALM 或重新 pinch
+                pass
         elif signal.pinch_active and signal.pinch_position:
             # 进入 DRAG_PINCH
             self._state = PetState.DRAG_PINCH

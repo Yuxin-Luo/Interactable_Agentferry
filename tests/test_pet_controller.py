@@ -87,3 +87,23 @@ def test_drag_states_not_entered_by_gesture(qtbot):
     # 此处 gesture_label="Pinch" 仅表示该帧被识别为 pinch-like；实际进入 DRAG_PINCH 在 P4 任务
     # 故状态仍是 DEFAULT_FLY
     assert c.state == PetState.DEFAULT_FLY
+
+
+def test_pinch_other_gesture_keeps_drag(qtbot):
+    """spec §11 Q5: DRAG_PINCH 期间其他手势不退出."""
+    c = _make_controller()
+    # 进入 DRAG_PINCH
+    c.update(VisionSignal(pinch_active=True, pinch_position=QPoint(100, 100)))
+    assert c.state == PetState.DRAG_PINCH
+    # 其他手势（Thumb_Up）→ 仍保持 DRAG_PINCH
+    c.update(VisionSignal(pinch_active=True, pinch_position=QPoint(150, 150), gesture_label="Thumb_Up"))
+    assert c.state == PetState.DRAG_PINCH
+
+
+def test_pinch_open_palm_terminates(qtbot):
+    """spec §11 Q5: OPEN_PALM 是唯一退出条件."""
+    c = _make_controller()
+    c.update(VisionSignal(pinch_active=True, pinch_position=QPoint(100, 100)))
+    assert c.state == PetState.DRAG_PINCH
+    c.update(VisionSignal(pinch_active=True, pinch_position=QPoint(150, 150), gesture_label="Open_Palm"))
+    assert c.state == PetState.OPEN_PALM
