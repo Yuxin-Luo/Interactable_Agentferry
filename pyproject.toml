@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "interactable-agentferry"
+version = "0.1.0"
+description = "Linux 摄像头互动桌宠 — 跟随人脸 + 6 个手势 + pinch"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Aemeath Contributors" }]
+requires-python = ">=3.10"
+# 注意：运行时依赖放在 requirements.txt（用户在 README 步骤 1 用 pip install -r）。
+# 这里不重复声明以避免双源真相。
+dependencies = []
+
+[project.scripts]
+interactable-agentferry = "src.camera.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+exclude = ["tests*", "Reference*", "assets*", "dev_doc*", "scripts*"]
+
+[tool.setuptools.package-data]
+"src" = ["../assets/**/*.gif", "../assets/**/*.wav", "../assets/**/*.mp3"]

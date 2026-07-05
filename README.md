@@ -48,7 +48,30 @@ cd Interactable_Agentferry
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .             # 把 src/ 注册为可导入包（启动命令才能找到模块）
 ```
+
+> 不做 `pip install -e .` 也能跑，但启动命令要改成下面备选方案。
+
+### 3. 启动
+
+**推荐（已 `pip install -e .`）：**
+
+```bash
+python src/camera/main.py
+# 或
+interactable-agentferry
+```
+
+**备选（不装包）：**
+
+```bash
+PYTHONPATH=. python src/camera/main.py
+# 或
+python -m src.camera.main
+```
+
+首次启动会自动创建 `~/.config/interactable_agentferry/settings.json`。窗口大小默认占主屏 ~90%，右上角出现 HUD，左上角显示摄像头画面，桌宠飞过来迎接你。
 
 ### 2. 下载 MediaPipe 模型（首次运行必须）
 
@@ -173,6 +196,12 @@ A：保持手在摄像头视野中央，距离 50-80 cm，光线充足。HUD 角
 
 **Q：模型下载失败？**
 A：`scripts/download_models.sh` 用的是 Google Storage CDN。若网络不通，可手动从 [MediaPipe Models](https://developers.google.com/mediapipe) 下载 4 个文件到 `assets/models/`。
+
+**Q：`python src/camera/main.py` 报 `ModuleNotFoundError: No module named 'src'`？**
+A：项目用 `src/` layout，需要把项目根加到 `sys.path`。三选一：
+1. `pip install -e .`（推荐，已在快速开始步骤 1）
+2. `PYTHONPATH=. python src/camera/main.py`
+3. `python -m src.camera.main`
 
 **Q：拖动后桌宠不飞回来？**
 A：检查 Settings 面板里的飞行速度（min 不能为 0）；查看终端日志是否有 `PetController` 报错。
