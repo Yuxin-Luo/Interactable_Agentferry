@@ -24,7 +24,7 @@ from typing import Callable, Dict, List, Optional
 from PyQt6.QtCore import QUrl
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaDevices
 
-from utils.log import get_logger
+from src.utils.log import get_logger
 
 _log = get_logger("aemeath.sound")
 
