@@ -84,11 +84,12 @@ class AppOrchestrator:
         if gesture_label is None:
             return
         action = gesture_lookup(gesture_label)
-        if action.voice and self.vision is not None:
-            # 仅在状态变化时播放（避免循环触发）
-            if not hasattr(self, "_last_audio_state") or self._last_audio_state != state_label:
+        if not hasattr(self, "_last_audio_state") or self._last_audio_state != state_label:
                 self._last_audio_state = state_label
-                self.sound.play_voice_for_action(gesture_label)
+                if action.voice and self.vision is not None:
+                    self.sound.play_voice_for_action(gesture_label)
+                if action.music:
+                    self.sound.play_music_now()
 
     def run(self) -> int:
         self.window.show()
