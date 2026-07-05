@@ -60,12 +60,32 @@ class CcConfig:
 
 
 @dataclass
+class VisionSettings:
+    """Camera/vision pipeline configuration (see dev_doc/3-design §5.3)."""
+    cam_resolution: tuple = (1280, 720)
+    cam_fps: int = 30
+    cam_device_index: int = 0
+    flight_speed_min: int = 50       # px/s
+    flight_speed_max: int = 300      # px/s
+    gesture_hold_timeout: float = 2.0  # s
+    face_tier_thresholds: tuple = (80, 160)  # (mid_max, near_min) face bbox width px
+    pet_size_near: float = 1.5
+    pet_size_mid: float = 1.0
+    pet_size_far: float = 0.6
+    head_exclusion_padding: float = 0.2  # face bbox 外扩比例
+    pinch_distance_threshold: float = 0.05  # thumb_tip ↔ index_tip 归一化距离
+    pinch_hold_frames: int = 3       # 连续多少帧确认 pinch
+    settings_persistence_path: str = "~/.config/interactable_agentferry/settings.json"
+
+
+@dataclass
 class AppSettings:
     code_cli: CodeCli = field(default_factory=CodeCli)
     chat_api: ChatApi = field(default_factory=ChatApi)
     safe_zones: List[SafeZone] = field(default_factory=list)
     sound: Sound = field(default_factory=Sound)
     cc: CcConfig = field(default_factory=CcConfig)
+    vision: VisionSettings = field(default_factory=VisionSettings)
 
 
 def load_settings(path: Path) -> AppSettings:
