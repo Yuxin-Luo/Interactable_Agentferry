@@ -1,7 +1,6 @@
 """Tests for SettingsStore JSON persistence."""
 import json
 from pathlib import Path
-import tempfile
 
 from src.pet.settings_store import SettingsStore
 
