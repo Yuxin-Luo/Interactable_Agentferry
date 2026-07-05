@@ -58,6 +58,7 @@ class AppOrchestrator:
         self.worker = VisionWorker(vision=vision)
         self.worker.vision_update.connect(self._on_vision_update)
         self.worker.camera_error.connect(self._on_camera_error)
+        self.worker.camera_frame.connect(self.window.update_camera_frame)
 
         # Tick timer (60fps) — 在没有 vision_update 时也维持 render 状态
         self._tick_timer = QTimer()
@@ -92,8 +93,7 @@ class AppOrchestrator:
         self._render_camera_from_signal(signal)
 
     def _render_camera_from_signal(self, signal: VisionSignal) -> None:
-        # P2 简化：camera frame 由 worker 单独 emit；这里仅占位
-        # P3 重构：worker emit (VisionSignal, QImage) tuple
+        # Camera frame is now emitted directly by worker via camera_frame signal
         pass
 
     def _on_camera_error(self, msg: str) -> None:

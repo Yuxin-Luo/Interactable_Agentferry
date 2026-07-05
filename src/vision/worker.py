@@ -8,6 +8,7 @@ from typing import Optional
 
 import cv2
 from PyQt6.QtCore import QThread, pyqtSignal, QPoint, QSize
+from PyQt6.QtGui import QImage
 
 from src.config.settings import VisionSettings
 from src.vision.pipelines import FaceTracker, PinchDetector
@@ -30,6 +31,7 @@ class VisionWorker(QThread):
 
     vision_update = pyqtSignal(object)  # VisionSignal
     camera_error = pyqtSignal(str)
+    camera_frame = pyqtSignal(object)  # QImage
 
     def __init__(self, vision: VisionSettings, parent=None):
         super().__init__(parent)
@@ -139,8 +141,13 @@ class VisionWorker(QThread):
                     continue
                 consecutive_error_count = 0
 
-                # BGR → RGB for MediaPipe
+                # Emit BGR→RGB QImage for camera preview (before MediaPipe processing)
                 frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+                h, w = frame_rgb.shape[:2]
+                qimage = QImage(frame_rgb.data, w, h, w * 3, QImage.Format.Format_RGB888)
+                self.camera_frame.emit(qimage.copy())
+
+                # BGR → RGB for MediaPipe (reuse frame_rgb from camera_frame emit above)
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
                 ts_ms = int(time.time() * 1000)
                 try:
