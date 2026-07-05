@@ -1,11 +1,10 @@
 """SettingsDialog — 飞行速度 / 距离阈值 / pet 大小可视化调节 (spec §2.1)."""
 from __future__ import annotations
-from typing import Dict
 
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QSpinBox,
-    QPushButton, QDialogButtonBox, QFormLayout, QGroupBox,
+    QDialog, QVBoxLayout, QHBoxLayout, QSlider, QSpinBox,
+    QDialogButtonBox, QFormLayout, QGroupBox,
 )
 
 from src.config.settings import VisionSettings
