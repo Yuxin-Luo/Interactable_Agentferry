@@ -107,3 +107,63 @@ def test_pinch_open_palm_terminates(qtbot):
     assert c.state == PetState.DRAG_PINCH
     c.update(VisionSignal(pinch_active=True, pinch_position=QPoint(150, 150), gesture_label="Open_Palm"))
     assert c.state == PetState.OPEN_PALM
+
+
+def test_hud_update_emits_gesture_label_not_state_value(qtbot):
+    """T-25: hud_update signal payload must be the user-facing gesture label string.
+
+    Previously emitted state.value (e.g. "open_palm"). Now must emit the
+    user-facing label from the spec mapping (e.g. "Open_Palm", "Thumb_Up").
+    """
+    c = _make_controller()
+    emitted = []
+    c.hud_update.connect(emitted.append)
+
+    # DEFAULT_FLY → "—"
+    c.update(VisionSignal(face_center=QPoint(640, 360), face_bbox_size=QSize(120, 120)))
+    assert emitted[-1] == "—", f"expected '—', got {emitted[-1]!r}"
+
+    # OPEN_PALM → "Open_Palm"
+    c.update(VisionSignal(gesture_label="Open_Palm"))
+    assert emitted[-1] == "Open_Palm", f"expected 'Open_Palm', got {emitted[-1]!r}"
+
+    # THUMB_UP → "Thumb_Up"
+    c.update(VisionSignal(gesture_label="Thumb_Up"))
+    assert emitted[-1] == "Thumb_Up", f"expected 'Thumb_Up', got {emitted[-1]!r}"
+
+    # THUMB_DOWN → "Thumb_Down"
+    c.update(VisionSignal(gesture_label="Thumb_Down"))
+    assert emitted[-1] == "Thumb_Down", f"expected 'Thumb_Down', got {emitted[-1]!r}"
+
+    # VICTORY → "Victory"
+    c.update(VisionSignal(gesture_label="Victory"))
+    assert emitted[-1] == "Victory", f"expected 'Victory', got {emitted[-1]!r}"
+
+    # FIST → "Closed_Fist"
+    c.update(VisionSignal(gesture_label="Closed_Fist"))
+    assert emitted[-1] == "Closed_Fist", f"expected 'Closed_Fist', got {emitted[-1]!r}"
+
+    # POINTING → "Pointing_Up"
+    c.update(VisionSignal(gesture_label="Pointing_Up"))
+    assert emitted[-1] == "Pointing_Up", f"expected 'Pointing_Up', got {emitted[-1]!r}"
+
+
+def test_hud_update_drag_states(qtbot):
+    """T-25: drag states emit their drag label, not a state value.
+
+    Mouse drag methods don't call _emit_render directly; they rely on the
+    next update() tick to emit.  We simulate that with a no-op VisionSignal.
+    """
+    c = _make_controller()
+    emitted = []
+    c.hud_update.connect(emitted.append)
+
+    # Enter DRAG_MOUSE via mouse drag; tick to trigger emit
+    c.start_mouse_drag()
+    c.update_mouse_drag(QPoint(200, 200))
+    c.update(VisionSignal(face_center=None, face_bbox_size=None))
+    assert emitted[-1] == "(drag)", f"expected '(drag)', got {emitted[-1]!r}"
+
+    # Enter DRAG_PINCH via VisionSignal; tick already calls _emit_render
+    c.update(VisionSignal(pinch_active=True, pinch_position=QPoint(100, 100)))
+    assert emitted[-1] == "Pinch", f"expected 'Pinch', got {emitted[-1]!r}"

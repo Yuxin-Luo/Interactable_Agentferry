@@ -214,8 +214,19 @@ class PetController(QObject):
         cmd = RenderCommand(position=self._pet_pos, gif_path=gif, scale=scale)
         self._last_render = cmd
         self.render_command.emit(cmd)
-        # HUD
-        self.hud_update.emit(self._state.value)
+        # HUD：显示原始 gesture_label（而非 state.value）
+        hud_label = {
+            PetState.DEFAULT_FLY: "—",
+            PetState.OPEN_PALM: "Open_Palm",
+            PetState.THUMB_UP: "Thumb_Up",
+            PetState.THUMB_DOWN: "Thumb_Down",
+            PetState.VICTORY: "Victory",
+            PetState.FIST: "Closed_Fist",
+            PetState.POINTING: "Pointing_Up",
+            PetState.DRAG_MOUSE: "(drag)",
+            PetState.DRAG_PINCH: "Pinch",
+        }.get(self._state, "?")
+        self.hud_update.emit(hud_label)
         self.audio_command.emit(self._state.value, {"loop": True})
 
     def start_mouse_drag(self) -> None:
