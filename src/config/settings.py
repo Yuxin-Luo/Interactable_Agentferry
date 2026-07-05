@@ -65,6 +65,11 @@ class VisionSettings:
     cam_resolution: tuple = (1280, 720)
     cam_fps: int = 30
     cam_device_index: int = 0
+    # Mirror the camera frame horizontally (selfie mode).  Both the
+    # display QImage AND MediaPipe see the flipped frame, so vision
+    # coordinates (face_center, pinch_position) stay consistent with
+    # what the user sees on screen.
+    flip_horizontal: bool = True
     flight_speed_min: int = 50       # px/s
     flight_speed_max: int = 300      # px/s
     gesture_hold_timeout: float = 2.0  # s

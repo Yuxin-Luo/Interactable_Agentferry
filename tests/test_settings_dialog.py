@@ -30,6 +30,7 @@ def test_dialog_instantiates(vision, store, qtbot):
 def test_dialog_loads_current_values(vision, store, qtbot):
     """Widgets are populated with vision defaults on open."""
     dialog = SettingsDialog(vision, store)
+    assert dialog.check_flip.isChecked() == vision.flip_horizontal
     assert dialog.slider_speed_min.value() == vision.flight_speed_min
     assert dialog.slider_speed_max.value() == vision.flight_speed_max
     assert dialog.spin_tier_mid.value() == vision.face_tier_thresholds[0]
@@ -53,6 +54,7 @@ def test_save_emits_signal_and_accepts(vision, store, qtbot):
     dialog.spin_speed_min.setValue(200)
     dialog.spin_tier_mid.setValue(90)
     dialog.spin_size_near.setValue(180)
+    dialog.check_flip.setChecked(False)
 
     # Click Save
     qtbot.mouseClick(
@@ -66,6 +68,7 @@ def test_save_emits_signal_and_accepts(vision, store, qtbot):
     assert ov["flight_speed_min"] == 200
     assert ov["face_tier_thresholds"] == [90, vision.face_tier_thresholds[1]]
     assert ov["pet_size_near"] == 1.8
+    assert ov["flip_horizontal"] is False
 
 
 def test_cancel_does_not_emit_signal(vision, store, qtbot):

@@ -121,6 +121,8 @@ class PetController(QObject):
                 setattr(v, k, overrides[k])
         if "head_exclusion_padding" in overrides:
             v.head_exclusion_padding = overrides["head_exclusion_padding"]
+        if "flip_horizontal" in overrides:
+            v.flip_horizontal = overrides["flip_horizontal"]
 
     def update(self, signal: VisionSignal) -> None:
         """主线程 tick — 每帧调用一次（与 QTimer.timeout 绑定）."""

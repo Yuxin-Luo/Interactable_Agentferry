@@ -179,6 +179,12 @@ class VisionWorker(QThread):
                 consecutive_error_count = 0
                 debug_frame_counter += 1
 
+                # Selfie-mode horizontal flip: applied to BOTH the displayed
+                # frame and the MediaPipe input so face_center coordinates stay
+                # consistent with what the user sees.
+                if self._vision.flip_horizontal:
+                    frame_bgr = cv2.flip(frame_bgr, 1)
+
                 # Emit BGR→RGB QImage for camera preview (before MediaPipe processing)
                 frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
                 h, w = frame_rgb.shape[:2]

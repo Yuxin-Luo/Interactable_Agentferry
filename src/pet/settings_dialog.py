@@ -4,7 +4,7 @@ from __future__ import annotations
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QSlider, QSpinBox,
-    QDialogButtonBox, QFormLayout, QGroupBox,
+    QDialogButtonBox, QFormLayout, QGroupBox, QCheckBox,
 )
 
 from src.config.settings import VisionSettings
@@ -25,6 +25,13 @@ class SettingsDialog(QDialog):
 
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
+
+        # Camera group (flip toggle)
+        gb_cam = QGroupBox("摄像头")
+        form_cam = QFormLayout(gb_cam)
+        self.check_flip = QCheckBox("水平翻转（自拍模式）")
+        form_cam.addRow(self.check_flip)
+        layout.addWidget(gb_cam)
 
         # Flight speed group
         gb_flight = QGroupBox("飞行速度")
@@ -91,6 +98,7 @@ class SettingsDialog(QDialog):
 
     def _load_current(self) -> None:
         v = self._vision
+        self.check_flip.setChecked(v.flip_horizontal)
         self.slider_speed_min.setValue(v.flight_speed_min)
         self.slider_speed_max.setValue(v.flight_speed_max)
         self.spin_tier_mid.setValue(v.face_tier_thresholds[0])
@@ -101,6 +109,7 @@ class SettingsDialog(QDialog):
 
     def _on_save(self) -> None:
         overrides = {
+            "flip_horizontal": self.check_flip.isChecked(),
             "flight_speed_min": self.slider_speed_min.value(),
             "flight_speed_max": self.slider_speed_max.value(),
             "face_tier_thresholds": [self.spin_tier_mid.value(), self.spin_tier_near.value()],

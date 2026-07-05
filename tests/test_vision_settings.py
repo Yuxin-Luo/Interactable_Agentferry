@@ -7,6 +7,7 @@ def test_vision_settings_defaults():
     assert v.cam_resolution == (1280, 720)
     assert v.cam_fps == 30
     assert v.cam_device_index == 0
+    assert v.flip_horizontal is True  # selfie mode default
     assert v.flight_speed_min == 50
     assert v.flight_speed_max == 300
     assert v.gesture_hold_timeout == 2.0
