@@ -36,6 +36,9 @@ class PetOverlay(QLabel):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setFixedSize(128, 128)  # 默认尺寸
+        from PyQt6.QtGui import QMovie
+        self._movie = None
+        self._current_gif_path: str | None = None
         self._dragging = False
         self._drag_offset = QPoint()
 
@@ -131,9 +134,20 @@ class CameraPetWindow(QMainWindow):
 
     def update_pet(self, position: QPoint, gif_path: str, scale: float = 1.0) -> None:
         """PetController → PetOverlay."""
+        from PyQt6.QtGui import QMovie
+        from pathlib import Path
+
         size = int(128 * scale)
         self.pet_overlay.setFixedSize(size, size)
-        # TODO(P2): load GIF via QMovie and start
+        # GIF 切换
+        if gif_path != self.pet_overlay._current_gif_path:
+            full_path = _ASSETS.parent / gif_path if not Path(gif_path).is_absolute() else Path(gif_path)
+            if full_path.exists():
+                movie = QMovie(str(full_path))
+                self.pet_overlay.setMovie(movie)
+                movie.start()
+                self.pet_overlay._movie = movie
+                self.pet_overlay._current_gif_path = gif_path
         self.pet_overlay.move(position)
 
     def update_hud(self, text: str) -> None:
