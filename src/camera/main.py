@@ -14,6 +14,9 @@ from src.vision.worker import VisionWorker, VisionSignal
 from src.pet.controller import PetController
 from src.pet.sound_manager import SoundManager
 from src.pet.gesture_mapper import lookup as gesture_lookup
+from src.pet.settings_store import SettingsStore
+from src.pet.settings_dialog import SettingsDialog
+from pathlib import Path
 
 
 class AppOrchestrator:
@@ -41,6 +44,16 @@ class AppOrchestrator:
         # 音频
         self.sound = SoundManager()
 
+        # 设置持久化 + 启动加载
+        self.store = SettingsStore(path=Path(self.controller._vision.settings_persistence_path).expanduser())
+        persisted = self.store.load()
+        if persisted:
+            self.controller.apply_settings(persisted)
+
+        # 右键菜单：添加 Settings 项
+        self.window.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.window.customContextMenuRequested.connect(self._show_context_menu)
+
         # Vision worker
         self.worker = VisionWorker(vision=vision)
         self.worker.vision_update.connect(self._on_vision_update)
@@ -50,6 +63,26 @@ class AppOrchestrator:
         self._tick_timer = QTimer()
         self._tick_timer.timeout.connect(self._tick_render)
         self._tick_timer.start(16)  # ~60fps
+
+    def _show_context_menu(self, pos) -> None:
+        from PyQt6.QtGui import QAction, QMenu
+        menu = QMenu(self.window)
+        act_settings = QAction("Settings...", menu)
+        act_settings.triggered.connect(self._open_settings)
+        menu.addAction(act_settings)
+        act_quit = QAction("Quit", menu)
+        act_quit.triggered.connect(self.app.quit)
+        menu.addAction(act_quit)
+        menu.exec(self.window.mapToGlobal(pos))
+
+    def _open_settings(self) -> None:
+        d = SettingsDialog(self.controller._vision, self.store, parent=self.window)
+        d.settings_changed.connect(self._on_settings_changed)
+        d.exec()
+
+    def _on_settings_changed(self, overrides: dict) -> None:
+        self.controller.apply_settings(overrides)
+        self.store.save(overrides)
 
     def _on_vision_update(self, signal: VisionSignal) -> None:
         # 同时把摄像头帧送 window

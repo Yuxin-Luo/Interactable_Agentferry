@@ -167,3 +167,33 @@ def test_hud_update_drag_states(qtbot):
     # Enter DRAG_PINCH via VisionSignal; tick already calls _emit_render
     c.update(VisionSignal(pinch_active=True, pinch_position=QPoint(100, 100)))
     assert emitted[-1] == "Pinch", f"expected 'Pinch', got {emitted[-1]!r}"
+
+
+def test_apply_settings_updates_vision_fields():
+    """T-28: apply_settings mutates live _vision fields."""
+    v = VisionSettings()
+    c = PetController(vision=v)
+    c.set_window_size(640, 360)
+
+    # Override flight_speed_min → should recreate _flight
+    c.apply_settings({"flight_speed_min": 300})
+    assert c._vision.flight_speed_min == 300
+    assert c._flight._speed == 300
+
+    # Override pet sizes
+    c.apply_settings({"pet_size_near": 2.0, "pet_size_mid": 1.5, "pet_size_far": 0.5})
+    assert c._vision.pet_size_near == 2.0
+    assert c._vision.pet_size_mid == 1.5
+    assert c._vision.pet_size_far == 0.5
+
+    # Override tier thresholds
+    c.apply_settings({"face_tier_thresholds": [50, 120]})
+    assert c._vision.face_tier_thresholds == (50, 120)
+
+
+def test_apply_settings_unknown_keys_do_not_crash():
+    """T-28: unknown keys are silently ignored."""
+    v = VisionSettings()
+    c = PetController(vision=v)
+    c.set_window_size(640, 360)
+    c.apply_settings({"unknown_key": 123, "another": "foo"})  # must not raise

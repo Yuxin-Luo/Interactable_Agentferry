@@ -98,6 +98,20 @@ class PetController(QObject):
         # 初始化桌宠位置：窗口中心
         self._pet_pos = QPoint(w // 2 - self._pet_size // 2, h // 2 - self._pet_size // 2)
 
+    def apply_settings(self, overrides: dict) -> None:
+        """实时应用设置变更."""
+        v = self._vision
+        if "flight_speed_min" in overrides:
+            v.flight_speed_min = overrides["flight_speed_min"]
+            self._flight = FlightController(speed_px_per_s=v.flight_speed_min)
+        if "flight_speed_max" in overrides:
+            v.flight_speed_max = overrides["flight_speed_max"]
+        if "face_tier_thresholds" in overrides:
+            v.face_tier_thresholds = tuple(overrides["face_tier_thresholds"])
+        for k in ("pet_size_near", "pet_size_mid", "pet_size_far"):
+            if k in overrides:
+                setattr(v, k, overrides[k])
+
     def update(self, signal: VisionSignal) -> None:
         """主线程 tick — 每帧调用一次（与 QTimer.timeout 绑定）."""
         self._face_center = signal.face_center
