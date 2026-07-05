@@ -26,6 +26,11 @@ from src.pet.head_exclusion import HeadExclusionZone
 from src.pet.gesture_mapper import lookup as gesture_lookup, OPEN_PALM_GIFS
 
 
+# Pet base size in pixels (used by both controller and window).
+# Mirrors CameraPetWindow.PET_BASE_SIZE.  mid tier (scale=1.0) renders this.
+PET_BASE_SIZE = 192
+
+
 class PetState(str, Enum):
     DEFAULT_FLY = "default_fly"
     OPEN_PALM = "open_palm"
@@ -70,8 +75,10 @@ class PetController(QObject):
         self._state = PetState.DEFAULT_FLY
         self._win_w = 0
         self._win_h = 0
-        self._pet_size = 128  # base
+        self._pet_size = PET_BASE_SIZE  # base; actual render = PET_BASE_SIZE * scale
         self._pet_pos = QPoint(0, 0)
+        # Last computed render scale; used for clamp + sizing consistency.
+        self._last_scale: float = 1.0
         self._flight = FlightController(speed_px_per_s=vision.flight_speed_min)
         self._face_bbox: Optional[QRect] = None
         self._face_center: Optional[QPoint] = None
@@ -139,10 +146,11 @@ class PetController(QObject):
                 self._state = PetState.OPEN_PALM
                 self._last_gesture_change_ts = time.time()
             elif signal.pinch_active and signal.pinch_position:
-                # 跟随 pinch 位置
-                self._pet_pos = signal.pinch_position - QPoint(self._pet_size // 2, self._pet_size // 2)
-                self._pet_pos.setX(max(0, min(self._pet_pos.x(), self._win_w - self._pet_size)))
-                self._pet_pos.setY(max(0, min(self._pet_pos.y(), self._win_h - self._pet_size)))
+                # 跟随 pinch 位置（用 scaled size 钳制，与实际渲染一致）
+                actual_size = int(PET_BASE_SIZE * self._last_scale)
+                self._pet_pos = signal.pinch_position - QPoint(actual_size // 2, actual_size // 2)
+                self._pet_pos.setX(max(0, min(self._pet_pos.x(), self._win_w - actual_size)))
+                self._pet_pos.setY(max(0, min(self._pet_pos.y(), self._win_h - actual_size)))
                 # 其他手势：忽略，继续保持 DRAG_PINCH
             else:
                 # pinch 物理释放但未比 OPEN_PALM → 保持 DRAG_PINCH 直到 OPEN_PALM
@@ -151,8 +159,10 @@ class PetController(QObject):
         elif signal.pinch_active and signal.pinch_position:
             # 进入 DRAG_PINCH
             self._state = PetState.DRAG_PINCH
-            self._pet_pos = signal.pinch_position - QPoint(self._pet_size // 2, self._pet_size // 2)
+            actual_size = int(PET_BASE_SIZE * self._last_scale)
+            self._pet_pos = signal.pinch_position - QPoint(actual_size // 2, actual_size // 2)
             self._pinch_pos_last = signal.pinch_position
+            self._emit_render()  # HUD 立即变 "Pinch"
         else:
             # 手势处理（spec §4.2）
             if signal.gesture_label and signal.gesture_label != "None":
@@ -247,6 +257,7 @@ class PetController(QObject):
         # 距离档位
         bbox_w = self._face_bbox.width() if self._face_bbox else 0
         tier, scale = compute_tier(bbox_w, self._vision.face_tier_thresholds, (self._vision.pet_size_near, self._vision.pet_size_mid, self._vision.pet_size_far))
+        self._last_scale = scale
 
         gif = self._gif_for_state()
         cmd = RenderCommand(position=self._pet_pos, gif_path=gif, scale=scale)
@@ -279,15 +290,18 @@ class PetController(QObject):
         if self._state == PetState.DRAG_PINCH:
             return  # pinch 优先
         self._state = PetState.DRAG_MOUSE
+        # 关键：立即 emit render 让 drag.gif 出现在点击瞬间（不等 mouseMove）
+        self._emit_render()
 
     def update_mouse_drag(self, pos: QPoint) -> None:
         """PetOverlay mouseMoveEvent 调用."""
         if self._state != PetState.DRAG_MOUSE:
             return
         self._pet_pos = pos
-        # 钳制到窗口内
-        self._pet_pos.setX(max(0, min(self._pet_pos.x(), self._win_w - self._pet_size)))
-        self._pet_pos.setY(max(0, min(self._pet_pos.y(), self._win_h - self._pet_size)))
+        # 钳制到窗口内（用 scaled size 与实际渲染一致）
+        actual_size = int(PET_BASE_SIZE * self._last_scale)
+        self._pet_pos.setX(max(0, min(self._pet_pos.x(), self._win_w - actual_size)))
+        self._pet_pos.setY(max(0, min(self._pet_pos.y(), self._win_h - actual_size)))
         # 关键：发 render_command 让桌宠视觉跟随光标
         self._emit_render()
 

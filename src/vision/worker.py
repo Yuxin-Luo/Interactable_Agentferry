@@ -43,13 +43,44 @@ class VisionWorker(QThread):
         self._landmarker = None
         self._gesture_recognizer = None
         self._hand_landmarker = None
+        # Viewport size for camera→window coord mapping (set by orchestrator).
+        # 0,0 → pass-through (no scaling); used by tests + before window is created.
+        self._viewport_w: int = 0
+        self._viewport_h: int = 0
         self._pinch_detector = PinchDetector(
             distance_threshold=vision.pinch_distance_threshold,
             hold_frames=vision.pinch_hold_frames,
         )
 
+    def set_viewport_size(self, w: int, h: int) -> None:
+        """Set the window viewport size for coord mapping (camera→window).
+
+        Called by AppOrchestrator after CameraPetWindow is created.  Until
+        this is called, _to_viewport() passes coordinates through unchanged.
+        """
+        self._viewport_w = int(w)
+        self._viewport_h = int(h)
+
     def stop(self) -> None:
         self._stopping = True
+
+    def _to_viewport(self, p):
+        """Map a camera-space QPoint to window-space.
+
+        No-op when viewport is unset (0,0) or matches camera resolution
+        (ratio == 1.0).  Returns None for None input.
+        """
+        if p is None:
+            return None
+        if self._viewport_w <= 0 or self._viewport_h <= 0:
+            return p
+        cam_w, cam_h = self._vision.cam_resolution
+        if cam_w <= 0 or cam_h <= 0:
+            return p
+        return QPoint(
+            int(p.x() * self._viewport_w / cam_w),
+            int(p.y() * self._viewport_h / cam_h),
+        )
 
     def _load_landmarker(self):
         """懒加载 FaceLandmarker; 若失败 → 抛错由 caller 处理."""
@@ -66,6 +97,7 @@ class VisionWorker(QThread):
         base_options = mp.tasks.BaseOptions(model_asset_path=str(model_path))
         options = mp.tasks.vision.FaceLandmarkerOptions(
             base_options=base_options,
+            running_mode=mp.tasks.vision.RunningMode.VIDEO,
             output_face_blendshapes=False,
             output_facial_transformation_matrixes=False,
             num_faces=1,
@@ -87,6 +119,7 @@ class VisionWorker(QThread):
         base_options = mp.tasks.BaseOptions(model_asset_path=str(model_path))
         options = mp.tasks.vision.GestureRecognizerOptions(
             base_options=base_options,
+            running_mode=mp.tasks.vision.RunningMode.VIDEO,
         )
         return mp.tasks.vision.GestureRecognizer.create_from_options(options)
 
@@ -105,6 +138,7 @@ class VisionWorker(QThread):
         base_options = mp.tasks.BaseOptions(model_asset_path=str(model_path))
         options = mp.tasks.vision.HandLandmarkerOptions(
             base_options=base_options,
+            running_mode=mp.tasks.vision.RunningMode.VIDEO,
             num_hands=1,
         )
         return mp.tasks.vision.HandLandmarker.create_from_options(options)
@@ -195,12 +229,12 @@ class VisionWorker(QThread):
                     )
 
                 signal = VisionSignal(
-                    face_center=center,
+                    face_center=self._to_viewport(center),
                     face_bbox_size=size,
                     gesture_label=gesture_label,
-                    gesture_hand_pos=gesture_hand_pos,
+                    gesture_hand_pos=self._to_viewport(gesture_hand_pos),
                     pinch_active=pinch_active,
-                    pinch_position=pinch_pos,
+                    pinch_position=self._to_viewport(pinch_pos),
                     timestamp_ms=ts_ms,
                 )
                 self.vision_update.emit(signal)

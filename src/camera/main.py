@@ -61,6 +61,9 @@ class AppOrchestrator:
         # 注入 controller 到 window
         self.window._controller = self.controller
 
+        # 把窗口 viewport 尺寸传给 worker（用于 camera→window 坐标映射）
+        self.worker.set_viewport_size(win_w, win_h)
+
         # 音频
         self.sound = SoundManager()
 
@@ -106,15 +109,9 @@ class AppOrchestrator:
         self.store.save(overrides)
 
     def _on_vision_update(self, signal: VisionSignal) -> None:
-        # 同时把摄像头帧送 window
-        # (P1.5 之后可改为在 worker 中 emit QImage；目前由 controller 节流更新)
+        # Camera frame 已经直连到 window.update_camera_frame (via camera_frame signal)；
+        # 这里只跑 controller 状态机。
         self.controller.update(signal)
-        # 渲染摄像头画面（BGR → QImage）
-        self._render_camera_from_signal(signal)
-
-    def _render_camera_from_signal(self, signal: VisionSignal) -> None:
-        # Camera frame is now emitted directly by worker via camera_frame signal
-        pass
 
     def _on_camera_error(self, msg: str) -> None:
         print(f"[camera error] {msg}", file=sys.stderr)
@@ -127,22 +124,29 @@ class AppOrchestrator:
 
     def _on_audio_command(self, state_label: str, kwargs: dict) -> None:
         """state_label 是 PetState.value 字符串."""
-        # 把 state 映射回 gesture label 用于查 GestureMapper
+        # 把 state 映射回 gesture label 用于查 GestureMapper + 播放 voice
         state_to_gesture = {
-            "thumb_down": "Thumb_Down",
-            "victory": "Victory",
             "default_fly": "None",
+            "open_palm":   "Open_Palm",
+            "thumb_up":    "Thumb_Up",
+            "thumb_down":  "Thumb_Down",
+            "victory":     "Victory",
+            "fist":        "Closed_Fist",
+            "pointing":    "Pointing_Up",
+            # drag 期间不重复播 voice
+            "drag_mouse":  None,
+            "drag_pinch":  "Pinch",
         }
         gesture_label = state_to_gesture.get(state_label)
         if gesture_label is None:
             return
         action = gesture_lookup(gesture_label)
         if not hasattr(self, "_last_audio_state") or self._last_audio_state != state_label:
-                self._last_audio_state = state_label
-                if action.voice and self.vision is not None:
-                    self.sound.play_voice_for_action(gesture_label)
-                if action.music:
-                    self.sound.play_music_now()
+            self._last_audio_state = state_label
+            if action.voice and self.vision is not None:
+                self.sound.play_voice_for_action(gesture_label)
+            if action.music:
+                self.sound.play_music_now()
 
     def run(self) -> int:
         self.window.show()

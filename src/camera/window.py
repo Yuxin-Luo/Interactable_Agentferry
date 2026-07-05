@@ -20,6 +20,9 @@ from PyQt6.QtWidgets import (
 _ASSETS = Path(__file__).resolve().parents[2] / "assets" / "ameath"
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+# Pet base size in pixels (mid tier scale=1.0).  Must match PetController.PET_BASE_SIZE.
+PET_BASE_SIZE = 192
+
 
 class CameraLabel(QLabel):
     """背景：显示摄像头 QImage（letterbox）。"""
@@ -36,7 +39,9 @@ class PetOverlay(QLabel):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setFixedSize(192, 192)  # 默认尺寸（base scale=1.5 → 288，远更易看见）
+        # 默认尺寸用 PET_BASE_SIZE，与 controller 一致。
+        # scale 由 update_pet 覆盖（near=288, mid=192, far=115）。
+        self.setFixedSize(PET_BASE_SIZE, PET_BASE_SIZE)
         # 关键：让 QMovie 的帧自动缩放到 QLabel 大小，否则 GIF 原尺寸
         # 显示在 QLabel 左上角，看上去像"只显示一部分"。
         self.setScaledContents(True)
@@ -112,8 +117,8 @@ class CameraPetWindow(QMainWindow):
         self.camera_label.setGeometry(0, 0, win_w, win_h)
 
         self.pet_overlay = PetOverlay(central)
-        # 默认 192×192 → 居中放（之前 size=128 时偏移 64，已改成 96）
-        self.pet_overlay.move(win_w // 2 - 96, win_h // 2 - 96)
+        # 居中放（base size 192，偏移 96）
+        self.pet_overlay.move(win_w // 2 - PET_BASE_SIZE // 2, win_h // 2 - PET_BASE_SIZE // 2)
 
         self.hud_label = HUDLabel(central)
         # HUD 宽度 240 / 高度 56 — 显示两行：手势 + 检测状态
@@ -161,10 +166,13 @@ class CameraPetWindow(QMainWindow):
         from PyQt6.QtGui import QMovie
         from pathlib import Path
 
-        size = int(128 * scale)
+        size = int(PET_BASE_SIZE * scale)
         self.pet_overlay.setFixedSize(size, size)
-        # GIF 切换
+        # GIF 切换（先 stop 旧 movie 防止内存泄漏 + 多 movie 视觉错乱）
         if gif_path != self.pet_overlay._current_gif_path:
+            if self.pet_overlay._movie is not None:
+                self.pet_overlay._movie.stop()
+                self.pet_overlay._movie = None
             full_path = _PROJECT_ROOT / gif_path if not Path(gif_path).is_absolute() else Path(gif_path)
             if full_path.exists():
                 movie = QMovie(str(full_path))
