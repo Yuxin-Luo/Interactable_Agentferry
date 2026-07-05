@@ -11,6 +11,20 @@
 
 ---
 
+## 📺 Long-form walk-through (Bilibili)
+
+🎬 **[主参考视频：我制作了飞行雪绒可爱桌宠！win平台，低占用](https://www.bilibili.com/video/BV12rcMznEcG/)**
+by **`-fugu-`** — this project's character design, GIFs, voice lines, and base
+state-machine patterns all derive from the original open-source
+**[Ameath](https://gitee.com/lzy-buaa-jdi/ameath)** project (MIT license). If
+you read Chinese and want the design intent behind the pet's behaviour and
+animations, start there.
+
+🎬 **[本项目 demo 演示：linux互动型桌宠 代码开源 Aemeath](https://www.bilibili.com/video/BV1u9Ty68EGK/)**
+— our Linux port + gesture / pinch additions in action.
+
+---
+
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg" alt="License: GPL v3"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-3776AB.svg" alt="Python 3.10+">
@@ -258,11 +272,33 @@ When contributing:
 
 ## 🙏 Acknowledgments
 
+### Primary credit — original Ameath by `-fugu-`
+
+This project's character design, GIF animations, voice lines, and base
+state-machine patterns all derive from the original
+**[Ameath](https://gitee.com/lzy-buaa-jdi/ameath)** open-source project by
+**[`-fugu-`](https://gitee.com/lzy-buaa-jdi)** (MIT license). All GIFs in
+`assets/ameath/gifs/` and audio in `assets/ameath/sound/` come from that
+project.
+
+If you haven't already, watch the original walk-through:
+**[【我制作了飞行雪绒可爱桌宠！win平台，低占用】](https://www.bilibili.com/video/BV12rcMznEcG/)**
+— it explains the design intent behind the pet's behaviour and animation
+choices better than any README can.
+
+If you build something on top of this, please credit `-fugu-` and link back
+to the original Gitee repo.
+
+### Other dependencies and inspiration
+
 - [MediaPipe](https://developers.google.com/mediapipe) — Face / Hand Landmarker + Gesture Recognizer models and runtime.
 - [OpenCV](https://opencv.org/) — Camera capture.
 - [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) — UI framework.
-- [`My_Code/Desktop_Agentferry`](https://github.com/Yuxin-Luo/Desktop_Agentferry) — Previous generation, baseline for the pet state machine + sound manager.
-- `MediaPipe-Real-Time-Computer-Vision-Demos` — Reference implementation for the running_mode=VIDEO pattern.
+- [`My_Code/Desktop_Agentferry`](https://github.com/Yuxin-Luo/Desktop_Agentferry) — Previous generation by the same author; baseline for the pet state machine + sound manager.
+- `MediaPipe-Real-Time-Computer-Vision-Demos` — Reference implementation for the `running_mode=VIDEO` pattern.
+- `banban-desktop-pet` — Architectural inspiration for the Python↔pet closed loop.
+- `gum-gum-hand-stretch` — Inspiration for ARAP-style pinch handling.
+- `MonkeyMeme-Gesture_Tracker` — Gesture classification algorithm reference.
 
 ---
 
