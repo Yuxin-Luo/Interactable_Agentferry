@@ -1,0 +1,65 @@
+# ======== Reference materials (read-only, never commit) ========
+# 占 1.3 GB；只读参考区，按 Reference/README.md §7 处理
+Reference/
+
+# ======== MediaPipe 模型 (按 scripts/download_models.sh 下载) ========
+# 占 ~12 MB；首次运行或更新时下载，避免污染 git 历史
+assets/models/*.task
+assets/models/*.tflite
+# 例外：保留模型目录本身（含 README 占位）
+!assets/models/.gitkeep
+
+# ======== Python 缓存 / 测试缓存 ========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# ======== IDE / 编辑器 ========
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ======== 运行时数据 / 用户配置 ========
+# 用户设置（实际写在 ~/.config/interactable_agentferry/settings.json，但防止误放在仓库内）
+config.local.json
+.runtime/
+*.log
+
+# ======== 临时文件 ========
+*.tmp
+*.bak
+*.swp
+
+# ======== SDD 工作区（plan/task brief/report 不入库） ========
+.superpowers/sdd/task-*-brief.md
+.superpowers/sdd/task-*-report.md
+.superpowers/sdd/review-*.diff
+.superpowers/sdd/progress.md
