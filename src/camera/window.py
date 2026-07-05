@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
 
 # 确保 resources 路径可解析
 _ASSETS = Path(__file__).resolve().parents[2] / "assets" / "ameath"
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 class CameraLabel(QLabel):
@@ -149,7 +150,7 @@ class CameraPetWindow(QMainWindow):
         self.pet_overlay.setFixedSize(size, size)
         # GIF 切换
         if gif_path != self.pet_overlay._current_gif_path:
-            full_path = _ASSETS.parent / gif_path if not Path(gif_path).is_absolute() else Path(gif_path)
+            full_path = _PROJECT_ROOT / gif_path if not Path(gif_path).is_absolute() else Path(gif_path)
             if full_path.exists():
                 movie = QMovie(str(full_path))
                 self.pet_overlay.setMovie(movie)

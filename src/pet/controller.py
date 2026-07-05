@@ -60,7 +60,7 @@ _GIF_SCREEN4 = "assets/ameath/gifs/screen4.gif"
 
 
 class PetController(QObject):
-    render_command = pyqtSignal(object)  # RenderCommand
+    render_command = pyqtSignal(QPoint, str, float)  # (position, gif_path, scale)
     hud_update = pyqtSignal(str)
     audio_command = pyqtSignal(str, dict)
 
@@ -228,7 +228,7 @@ class PetController(QObject):
         gif = self._gif_for_state()
         cmd = RenderCommand(position=self._pet_pos, gif_path=gif, scale=scale)
         self._last_render = cmd
-        self.render_command.emit(cmd)
+        self.render_command.emit(cmd.position, cmd.gif_path, cmd.scale)
         # HUD：显示原始 gesture_label（而非 state.value）
         hud_label = {
             PetState.DEFAULT_FLY: "—",

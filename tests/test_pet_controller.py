@@ -211,3 +211,31 @@ def test_apply_settings_updates_head_exclusion_padding():
     # Override and check it propagates
     c.apply_settings({"head_exclusion_padding": 0.6})
     assert c._vision.head_exclusion_padding == 0.6
+
+
+def test_render_command_signal_carries_three_positional_args(qtbot):
+    """Regression test (dev_doc/6-debug-signal-sig-mismatch-2026-07-05):
+
+    render_command MUST be (QPoint, str, float) so the slot
+    CameraPetWindow.update_pet(position, gif_path, scale) matches.
+    Mismatched signal/slot raises TypeError inside Qt dispatch → segfault.
+    """
+    v = VisionSettings()
+    c = PetController(vision=v)
+    c.set_window_size(640, 360)
+
+    captured = []
+    # Slot with exact (position, gif_path, scale) signature must accept the signal
+    def slot(position, gif_path, scale):
+        captured.append((position, gif_path, scale))
+
+    c.render_command.connect(slot)
+    c.update(VisionSignal(
+        face_center=QPoint(640, 360), face_bbox_size=QSize(120, 120),
+    ))
+
+    assert len(captured) == 1
+    pos, gif, scale = captured[0]
+    assert isinstance(pos, QPoint)
+    assert isinstance(gif, str) and gif.endswith(".gif")
+    assert isinstance(scale, float)
