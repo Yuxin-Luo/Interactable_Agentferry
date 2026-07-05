@@ -25,6 +25,16 @@ class AppOrchestrator:
         self.app = QApplication.instance() or QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(True)
 
+        # 强制 logging：basicConfig 在 absl/MediaPipe 配置过 root logger 后变 no-op，
+        # 必须 force=True 才能拿到自己的 handler；否则 _log.info() 全被吞掉。
+        import logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(name)s %(levelname)s %(message)s",
+            force=True,
+            handlers=[logging.StreamHandler(sys.stderr)],
+        )
+
         # Window size: 90% of primary screen (not cam resolution — cameras
         # are usually 720p/1080p but screens are larger).
         screen = QGuiApplication.primaryScreen()

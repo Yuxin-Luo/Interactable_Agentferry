@@ -194,7 +194,8 @@ class PetController(QObject):
     # ---- DEFAULT_FLY ----
     def _tick_default_fly(self) -> None:
         if not self._face_center or not self._face_bbox:
-            # 无脸：保持当前位置
+            # 无脸：小幅度随机漂移（不让桌宠完全静止，看着更"活"）
+            self._drift_without_face()
             return
         # 候选目标点：头部周围 8 个点（弧线分布）
         if not self._current_target or FlightController.arrived(self._pet_pos, self._current_target):
@@ -205,6 +206,25 @@ class PetController(QObject):
             self._last_tick_ts = now
         dt = max(0.001, now - self._last_tick_ts)
         self._last_tick_ts = now
+        self._pet_pos = self._flight.step(self._pet_pos, self._current_target, dt)
+
+    def _drift_without_face(self) -> None:
+        """无脸时随机漂移：选一个窗口内的随机目标，慢速移动过去。"""
+        import random
+        if self._win_w <= 0 or self._win_h <= 0:
+            return
+        if not self._current_target or FlightController.arrived(self._pet_pos, self._current_target):
+            margin = max(40, self._pet_size)
+            self._current_target = QPoint(
+                random.randint(margin, max(margin + 1, self._win_w - self._pet_size - margin)),
+                random.randint(margin, max(margin + 1, self._win_h - self._pet_size - margin)),
+            )
+        now = time.time()
+        if not hasattr(self, "_last_tick_ts"):
+            self._last_tick_ts = now
+        dt = max(0.001, now - self._last_tick_ts)
+        self._last_tick_ts = now
+        # 用较慢速度（flight_speed_min）漂移
         self._pet_pos = self._flight.step(self._pet_pos, self._current_target, dt)
 
     def _pick_new_target(self) -> None:
@@ -234,13 +254,14 @@ class PetController(QObject):
         self.render_command.emit(cmd.position, cmd.gif_path, cmd.scale)
         # HUD：DEFAULT_FLY 时若 MediaPipe 已识别到手势，显示该手势标签（用户能立即看到识别在工作）
         # 否则保持 "—" 表示无活动
+        face_mark = "Face:✓" if self._face_bbox else "Face:✗"
+        hand_mark = "Hand:✓" if self._last_gesture_label and self._last_gesture_label != "None" else "Hand:✗"
+        status_line = f"{face_mark}  {hand_mark}"
+
         if self._state == PetState.DEFAULT_FLY:
-            if self._last_gesture_label and self._last_gesture_label != "None":
-                hud_label = self._last_gesture_label
-            else:
-                hud_label = "—"
+            gesture_line = self._last_gesture_label if (self._last_gesture_label and self._last_gesture_label != "None") else "—"
         else:
-            hud_label = {
+            gesture_line = {
                 PetState.OPEN_PALM: "Open_Palm",
                 PetState.THUMB_UP: "Thumb_Up",
                 PetState.THUMB_DOWN: "Thumb_Down",
@@ -250,7 +271,7 @@ class PetController(QObject):
                 PetState.DRAG_MOUSE: "(drag)",
                 PetState.DRAG_PINCH: "Pinch",
             }.get(self._state, "?")
-        self.hud_update.emit(hud_label)
+        self.hud_update.emit(f"{gesture_line}\n{status_line}")
         self.audio_command.emit(self._state.value, {"loop": True})
 
     def start_mouse_drag(self) -> None:
@@ -267,18 +288,22 @@ class PetController(QObject):
         # 钳制到窗口内
         self._pet_pos.setX(max(0, min(self._pet_pos.x(), self._win_w - self._pet_size)))
         self._pet_pos.setY(max(0, min(self._pet_pos.y(), self._win_h - self._pet_size)))
+        # 关键：发 render_command 让桌宠视觉跟随光标
+        self._emit_render()
 
     def end_mouse_drag(self) -> None:
         """PetOverlay mouseReleaseEvent 调用."""
         if self._state != PetState.DRAG_MOUSE:
             return
         self._state = PetState.DEFAULT_FLY
-        # fly-back 目标：当前 face 位置
-        if self._face_center:
+        # fly-back 目标：当前 face 位置（让桌宠松手后飞回头部附近）
+        if self._face_center and self._face_bbox:
+            r = max(self._face_bbox.width(), self._face_bbox.height()) // 2 + 80
             self._current_target = QPoint(
-                self._face_center.x() - self._pet_size // 2,
-                self._face_center.y() - self._pet_size // 2,
+                self._face_center.x() + r,
+                self._face_center.y(),
             )
+            self._target_pick_counter = 0
 
     def _gif_for_state(self) -> str:
         if self._state == PetState.OPEN_PALM:

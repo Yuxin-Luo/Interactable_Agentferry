@@ -37,6 +37,9 @@ class PetOverlay(QLabel):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setFixedSize(192, 192)  # 默认尺寸（base scale=1.5 → 288，远更易看见）
+        # 关键：让 QMovie 的帧自动缩放到 QLabel 大小，否则 GIF 原尺寸
+        # 显示在 QLabel 左上角，看上去像"只显示一部分"。
+        self.setScaledContents(True)
         from PyQt6.QtGui import QMovie
         self._movie = None
         self._current_gif_path: str | None = None
@@ -70,15 +73,17 @@ class PetOverlay(QLabel):
 
 
 class HUDLabel(QLabel):
-    """右上角手势标签（占位）。"""
+    """右上角手势 + 检测状态标签（两行）。"""
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setStyleSheet(
-            "color: white; background-color: rgba(0,0,0,128); padding: 4px; border-radius: 4px;"
+            "color: white; background-color: rgba(0,0,0,160); padding: 6px 10px; border-radius: 6px; "
+            "font-family: monospace; font-size: 13px;"
         )
-        self.setFixedSize(140, 24)
+        self.setFixedSize(240, 56)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setWordWrap(True)
         self.hide()
 
 
@@ -107,10 +112,13 @@ class CameraPetWindow(QMainWindow):
         self.camera_label.setGeometry(0, 0, win_w, win_h)
 
         self.pet_overlay = PetOverlay(central)
-        self.pet_overlay.move(win_w // 2 - 64, win_h // 2 - 64)
+        # 默认 192×192 → 居中放（之前 size=128 时偏移 64，已改成 96）
+        self.pet_overlay.move(win_w // 2 - 96, win_h // 2 - 96)
 
         self.hud_label = HUDLabel(central)
-        self.hud_label.move(win_w - 160, 20)
+        # HUD 宽度 240 / 高度 56 — 显示两行：手势 + 检测状态
+        self.hud_label.setFixedSize(240, 56)
+        self.hud_label.move(win_w - 260, 20)
 
         # 拖动窗口（点空白处）
         self._dragging_window = False
@@ -131,6 +139,13 @@ class CameraPetWindow(QMainWindow):
     def mouseReleaseEvent(self, ev: QMouseEvent) -> None:
         if ev.button() == Qt.MouseButton.LeftButton and self._dragging_window:
             self._dragging_window = False
+            ev.accept()
+
+    # ---- 键盘：ESC 退出 ----
+    def keyPressEvent(self, ev) -> None:
+        if ev.key() == Qt.Key.Key_Escape:
+            from PyQt6.QtWidgets import QApplication
+            QApplication.instance().quit()
             ev.accept()
 
     # ---- 外部 API（下阶段填具体逻辑）----

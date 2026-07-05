@@ -110,42 +110,48 @@ def test_pinch_open_palm_terminates(qtbot):
 
 
 def test_hud_update_emits_gesture_label_not_state_value(qtbot):
-    """T-25: hud_update signal payload must be the user-facing gesture label string.
+    """T-25: hud_update signal payload must contain the user-facing gesture label string.
 
     Previously emitted state.value (e.g. "open_palm"). Now must emit the
     user-facing label from the spec mapping (e.g. "Open_Palm", "Thumb_Up").
+
+    The HUD also includes a second line "Face:✓/✗ Hand:✓/✗" status, so we
+    assert on the gesture line only (split on \n, take [0]).
     """
     c = _make_controller()
     emitted = []
     c.hud_update.connect(emitted.append)
 
+    def gesture_line():
+        return emitted[-1].split("\n", 1)[0]
+
     # DEFAULT_FLY → "—"
     c.update(VisionSignal(face_center=QPoint(640, 360), face_bbox_size=QSize(120, 120)))
-    assert emitted[-1] == "—", f"expected '—', got {emitted[-1]!r}"
+    assert gesture_line() == "—", f"expected '—', got {gesture_line()!r}"
 
     # OPEN_PALM → "Open_Palm"
     c.update(VisionSignal(gesture_label="Open_Palm"))
-    assert emitted[-1] == "Open_Palm", f"expected 'Open_Palm', got {emitted[-1]!r}"
+    assert gesture_line() == "Open_Palm", f"expected 'Open_Palm', got {gesture_line()!r}"
 
     # THUMB_UP → "Thumb_Up"
     c.update(VisionSignal(gesture_label="Thumb_Up"))
-    assert emitted[-1] == "Thumb_Up", f"expected 'Thumb_Up', got {emitted[-1]!r}"
+    assert gesture_line() == "Thumb_Up", f"expected 'Thumb_Up', got {gesture_line()!r}"
 
     # THUMB_DOWN → "Thumb_Down"
     c.update(VisionSignal(gesture_label="Thumb_Down"))
-    assert emitted[-1] == "Thumb_Down", f"expected 'Thumb_Down', got {emitted[-1]!r}"
+    assert gesture_line() == "Thumb_Down", f"expected 'Thumb_Down', got {gesture_line()!r}"
 
     # VICTORY → "Victory"
     c.update(VisionSignal(gesture_label="Victory"))
-    assert emitted[-1] == "Victory", f"expected 'Victory', got {emitted[-1]!r}"
+    assert gesture_line() == "Victory", f"expected 'Victory', got {gesture_line()!r}"
 
     # FIST → "Closed_Fist"
     c.update(VisionSignal(gesture_label="Closed_Fist"))
-    assert emitted[-1] == "Closed_Fist", f"expected 'Closed_Fist', got {emitted[-1]!r}"
+    assert gesture_line() == "Closed_Fist", f"expected 'Closed_Fist', got {gesture_line()!r}"
 
     # POINTING → "Pointing_Up"
     c.update(VisionSignal(gesture_label="Pointing_Up"))
-    assert emitted[-1] == "Pointing_Up", f"expected 'Pointing_Up', got {emitted[-1]!r}"
+    assert gesture_line() == "Pointing_Up", f"expected 'Pointing_Up', got {gesture_line()!r}"
 
 
 def test_hud_update_drag_states(qtbot):
@@ -158,15 +164,18 @@ def test_hud_update_drag_states(qtbot):
     emitted = []
     c.hud_update.connect(emitted.append)
 
+    def gesture_line():
+        return emitted[-1].split("\n", 1)[0]
+
     # Enter DRAG_MOUSE via mouse drag; tick to trigger emit
     c.start_mouse_drag()
     c.update_mouse_drag(QPoint(200, 200))
     c.update(VisionSignal(face_center=None, face_bbox_size=None))
-    assert emitted[-1] == "(drag)", f"expected '(drag)', got {emitted[-1]!r}"
+    assert gesture_line() == "(drag)", f"expected '(drag)', got {gesture_line()!r}"
 
     # Enter DRAG_PINCH via VisionSignal; tick already calls _emit_render
     c.update(VisionSignal(pinch_active=True, pinch_position=QPoint(100, 100)))
-    assert emitted[-1] == "Pinch", f"expected 'Pinch', got {emitted[-1]!r}"
+    assert gesture_line() == "Pinch", f"expected 'Pinch', got {gesture_line()!r}"
 
 
 def test_apply_settings_updates_vision_fields():
