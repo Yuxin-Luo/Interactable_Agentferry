@@ -24,6 +24,7 @@ from src.vision.worker import VisionSignal
 from src.pet.distance_tier import compute_tier
 from src.pet.flight import FlightController
 from src.pet.head_exclusion import HeadExclusionZone
+from src.pet.gesture_mapper import lookup as gesture_lookup, OPEN_PALM_GIFS
 
 
 class PetState(str, Enum):
@@ -81,7 +82,7 @@ class PetController(QObject):
         # OPEN_PALM 内部 idle 轮播计数器
         self._open_palm_index = 0
         self._last_gesture_ts: float = 0.0
-        # gesture_hold_timeout 用于 P3 接入
+        self._last_gesture_change_ts = time.time()
 
     @property
     def state(self) -> PetState:
@@ -113,8 +114,42 @@ class PetController(QObject):
         if self._state == PetState.DEFAULT_FLY:
             self._tick_default_fly()
 
+        # 手势处理（spec §4.2）
+        if signal.gesture_label and signal.gesture_label != "None":
+            self._handle_gesture(signal.gesture_label)
+        else:
+            self._check_gesture_timeout()
+
         # 触发 render（每帧 emit，方便 CameraPetWindow 接收）
         self._emit_render()
+
+    def _handle_gesture(self, label: str) -> None:
+        """根据 spec §4.2 状态转移表切换状态."""
+        # OPEN_PALM 终止 pinch（spec §11 Q5）— P9 任务正式接入
+        # 当前任务：仅处理 6 内置手势（不含 Pinch/Pinch exit 逻辑）
+        target_state = {
+            "Open_Palm": PetState.OPEN_PALM,
+            "Thumb_Up": PetState.THUMB_UP,
+            "Thumb_Down": PetState.THUMB_DOWN,
+            "Victory": PetState.VICTORY,
+            "Closed_Fist": PetState.FIST,
+            "Pointing_Up": PetState.POINTING,
+        }.get(label)
+        if target_state is None:
+            return
+        if self._state in (PetState.DRAG_MOUSE, PetState.DRAG_PINCH):
+            return  # 拖动期间忽略手势（pinch 例外由 OPEN_PALM 在 P9 接入）
+        if self._state != target_state:
+            self._state = target_state
+            self._last_gesture_change_ts = time.time()
+
+    def _check_gesture_timeout(self) -> None:
+        """2s 未再检测到非默认手势 → 回 DEFAULT_FLY."""
+        if self._state == PetState.DEFAULT_FLY or self._state in (PetState.DRAG_MOUSE, PetState.DRAG_PINCH):
+            return
+        elapsed = time.time() - self._last_gesture_change_ts
+        if elapsed >= self._vision.gesture_hold_timeout:
+            self._state = PetState.DEFAULT_FLY
 
     # ---- DEFAULT_FLY ----
     def _tick_default_fly(self) -> None:
@@ -162,7 +197,21 @@ class PetController(QObject):
         self.audio_command.emit(self._state.value, {"loop": True})
 
     def _gif_for_state(self) -> str:
-        if self._state == PetState.DEFAULT_FLY:
-            return _GIF_MOVE
-        # 其他状态在后续任务填充
-        return _GIF_MOVE
+        if self._state == PetState.OPEN_PALM:
+            # 轮播 idle1~4
+            now = time.time()
+            idx = int(now / 3) % len(OPEN_PALM_GIFS)  # 每 3s 切一张
+            return OPEN_PALM_GIFS[idx]
+        if self._state == PetState.DRAG_MOUSE or self._state == PetState.DRAG_PINCH:
+            return _GIF_DRAG
+        # 用 GestureMapper 查表（None / Thumb_Up / Thumb_Down / Victory / FIST / POINTING）
+        # 用 _state.value 反查
+        label_for_mapper = {
+            PetState.DEFAULT_FLY: "None",
+            PetState.THUMB_UP: "Thumb_Up",
+            PetState.THUMB_DOWN: "Thumb_Down",
+            PetState.VICTORY: "Victory",
+            PetState.FIST: "Closed_Fist",
+            PetState.POINTING: "Pointing_Up",
+        }.get(self._state, "None")
+        return gesture_lookup(label_for_mapper).gif
