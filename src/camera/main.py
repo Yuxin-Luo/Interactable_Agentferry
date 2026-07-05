@@ -61,9 +61,6 @@ class AppOrchestrator:
         # 注入 controller 到 window
         self.window._controller = self.controller
 
-        # 把窗口 viewport 尺寸传给 worker（用于 camera→window 坐标映射）
-        self.worker.set_viewport_size(win_w, win_h)
-
         # 音频
         self.sound = SoundManager()
 
@@ -79,6 +76,8 @@ class AppOrchestrator:
 
         # Vision worker
         self.worker = VisionWorker(vision=vision)
+        # 把窗口 viewport 尺寸传给 worker（用于 camera→window 坐标映射）
+        self.worker.set_viewport_size(win_w, win_h)
         self.worker.vision_update.connect(self._on_vision_update)
         self.worker.camera_error.connect(self._on_camera_error)
         self.worker.camera_frame.connect(self.window.update_camera_frame)
