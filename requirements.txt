@@ -1,0 +1,14 @@
+# Interactable Agentferry — Python dependencies
+#
+# 与 My_Code/Desktop_Agentferry/requirements.txt 对比：
+#   - 移除 anthropic（不结合 Claude Code）
+#   - 新增 mediapipe>=0.10（视觉管线）、opencv-python>=4.8（摄像头读取）
+
+PyQt6>=6.6
+python-xlib>=0.33
+mediapipe>=0.10.14
+opencv-python>=4.8
+
+# dev
+pytest>=8.0
+pytest-qt>=4.2

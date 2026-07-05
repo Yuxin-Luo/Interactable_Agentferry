@@ -1,0 +1,90 @@
+{
+  "project": "Interactable_Agentferry",
+  "license": "GPL-3.0",
+  "last_updated": "2026-07-05",
+  "references": [
+    {
+      "id": "mediapipe-tasks-api",
+      "title": "MediaPipe Tasks API (Python)",
+      "url": "https://developers.google.com/mediapipe/solutions/vision/hand_landmarker/python",
+      "type": "official_docs",
+      "purpose": "HandLandmarker / FaceLandmarker / GestureRecognizer 调用方式",
+      "version_seen": "0.10.x",
+      "license": "Apache-2.0",
+      "local_copy": "assets/models/*.task, src/vision/reference/*_ref.py"
+    },
+    {
+      "id": "mediapipe-models",
+      "title": "MediaPipe official model registry",
+      "url": "https://developers.google.com/mediapipe/solutions/vision/hand_landmarker",
+      "type": "model_registry",
+      "purpose": "face_landmarker.task / hand_landmarker.task 下载源",
+      "version_seen": "latest",
+      "license": "Apache-2.0",
+      "local_copy": "assets/models/"
+    },
+    {
+      "id": "monkeymeme-gesture-tracker",
+      "title": "MonkeyMeme Gesture Tracker",
+      "url": "https://github.com/MonkeyMeme/MonkeyMeme-Gesture_Tracker",
+      "type": "github_repo",
+      "purpose": "MediaPipe Tasks API + 手势分类 + 时间窗平滑参考实现",
+      "local_copy": "src/vision/reference/gesture_classifier_ref.py",
+      "license_inferred": "MIT-like (no LICENSE in repo)"
+    },
+    {
+      "id": "mediapipe-cv-demos",
+      "title": "MediaPipe Real-Time Computer Vision Demos",
+      "url": "https://github.com/yeemachine/mediapipe",
+      "type": "github_repo",
+      "purpose": "MediaPipe Tasks API 各 vision 任务 demo（face/hand/holistic）",
+      "local_copy": "src/vision/reference/face_detection_ref.py, hand_tracking_ref.py, holistic_tracking_ref.py",
+      "license": "MIT"
+    },
+    {
+      "id": "my-code-desktop-agentferry",
+      "title": "Desktop_Agentferry (My_Code)",
+      "url": "internal:/home/ruo/Desktop/LYX/VibeCoding/Interactable_Agentferry/Reference/My_Code/Desktop_Agentferry",
+      "type": "internal_repo",
+      "purpose": "上一版桌宠 PyQt6 实现：窗口、状态机、动画、音频、配置",
+      "local_copy": "src/pet/*, src/config/settings.py, src/utils/x11_binding.py, assets/ameath/*",
+      "license": "GPL-3.0"
+    },
+    {
+      "id": "ameath-mit",
+      "title": "ameath (Tkinter reference pet)",
+      "url": "https://github.com/sinlatansen/ameath",
+      "type": "github_repo",
+      "purpose": "角色 ameath 的原始出处（资源随 My_Code 一并复制）",
+      "license": "MIT"
+    },
+    {
+      "id": "banban-pet-architecture",
+      "title": "banban-desktop-pet",
+      "url": "https://github.com/banban/banban-desktop-pet",
+      "type": "github_repo",
+      "purpose": "Python↔桌宠 IPC 模式（JSON 文件轮询）借鉴",
+      "license": "未声明（仅借鉴架构，不复制代码）"
+    },
+    {
+      "id": "pyqt6-transparent-window",
+      "title": "PyQt6 frameless transparent window on X11",
+      "url": "https://doc.qt.io/qt-6/qwidget.html",
+      "type": "official_docs",
+      "purpose": "Qt::FramelessWindowHint + Qt::WA_TranslucentBackground 用法",
+      "local_copy": "src/pet/window.py (复用自 My_Code)"
+    },
+    {
+      "id": "python-xlib",
+      "title": "python-xlib (xlib python bindings)",
+      "url": "https://github.com/python-xlib/python-xlib",
+      "type": "github_repo",
+      "purpose": "X11 窗口操作（_NET_WM_STATE_ABOVE 等 EWMH hint）",
+      "local_copy": "src/utils/x11_binding.py"
+    }
+  ],
+  "open_questions": [
+    "MediaPipe GestureRecognizer 是否输出 7 个内置手势的全部置信度？需查官方文档确认",
+    "Pinch 检测的 thumb_tip ↔ index_tip 距离阈值如何随相机距离自适应？"
+  ]
+}

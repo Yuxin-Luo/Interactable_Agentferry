@@ -1,0 +1,46 @@
+ameath.ico： ameath_content.png压缩后形成的图标  
+ameath_content.png：  ameath.gif静态化的图片
+
+动作GIF位于：/home/ruo/Desktop/LYX/VibeCoding/Desktop_Agentferry/Reference/Code/ameath/gifs
+每个动作意义详解：
+ameath.gif： ameath带上墨镜随音乐不断点头（结合/home/ruo/Desktop/LYX/VibeCoding/Desktop_Agentferry/Reference/Code/ameath/sound/music 中音乐使用，可增加音乐播放功能）
+             或者在任何ameath自认为很酷的地方进行使用
+drag.gif：  ameath不断扑动翅膀，一般被用于拖拽期间的动作（常搭配/home/ruo/Desktop/LYX/VibeCoding/Desktop_Agentferry/Reference/Code/ameath/sound/voice/嘿嘿.wav）
+idle1.gif： ameath叹气并左顾右盼，常用于无奈表情         
+idle2.gif： ameath睁着大眼睛看着你。
+idle3.gif： ameath开心的举起右手跳来跳去
+idle4.gif： ameath不断举起双手欢呼
+move.gif： ameath自己飞行时的动作，一般用于用户长时间不与ameath互动后ameath自己到处移动玩。
+
+终端启动时动作gif：
+screen1.gif：ameath眨眨眼，不断挥动小拳头跃跃欲试（启动claude后默认动作）
+screen2.gif：ameath不断按动按钮（claude thinking阶段默认动作）
+screen3.gif：ameath非常疑惑不解（claude询问问题时默认动作）
+screen4.gif：ameath嚎啕大哭 （claude接收到运行错误信息后默认动作）
+
+
+PS：前七个动作为平时正常在桌面时可以做的动作，screen1-screen4为打开终端后ameath切换状态实时反应claude运行情况
+
+音乐文件位于：/home/ruo/Desktop/LYX/VibeCoding/Desktop_Agentferry/Reference/Code/ameath/sound/music
+用户未指定时ameath可以自由唱歌，用户可以自行选择歌曲哪些可以播放，触发时间在多少分钟内比较合适
+用户也可以指定触发动作
+
+声音文件位于：/home/ruo/Desktop/LYX/VibeCoding/Desktop_Agentferry/Reference/Code/ameath/sound/voice
+ameath在执行普通动作GIF时可能发出不同声音，名字即该音频会发出的声音。每个声音可能被对应的动作触发：
+嘿嘿.wav： drag.gif，move.gif
+看这里.wav：idle2.gif，move.gif
+嗯.wav： idle1.gif
+嗯，嘿嘿.wav：idle4.gif，move.gif，idle3.gif
+嗯，哼哼.wav：idle4.gif，move.gif，idle3.gif
+你，看见我了.wav：idle2.gif，move.gif
+现实系统，侵入完成.wav： ameath.gif，move.gif
+一起去拯救世界吧.wav： ameath.gif，
+
+我希望的手势结合的动作：
+1.默认ameath会不断move.gif在我头附近飞来飞去，（不能与头部区域重叠）且飞行速度可以控制（如 50-300 px/s）
+2.识别到我的手掌张开OPEN_PALM,ameath飞到我的掌心部位开始重复播放idle1-4动作，当没有识别手势2s后重新回到默认move.gif动作追着用户的头附近
+3.识别到手势THUMBS_DOWN，ameath留在原地嚎啕大哭执行screen4.gif，当没有识别手势2s后重新回到默认move.gif动作追着用户的头附近
+4.识别到用户剪刀手PEACE手势，ameath留在原地执行ameath.gif并随机播放音乐，如果有其他手势打断则停止播放音乐执行对应手势动作，如果没有识别其他手势则直到音乐播放完毕才重新回到默认move.gif动作追着用户的头附近
+5.识别到手势THUMBS_UP,ameath留在原地执行screen1.gif，当没有识别手势2s后重新回到默认move.gif动作追着用户的头附近
+6.识别到手势FIST,ameath留在原地执行screen2.gif，当没有识别手势2s后重新回到默认move.gif动作追着用户的头附近
+7.识别到手势POINTING,ameath留在原地执行screen3.gif，当没有识别手势2s后重新回到默认move.gif动作追着用户的头附近
