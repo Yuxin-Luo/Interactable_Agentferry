@@ -12,6 +12,8 @@ from src.config.settings import VisionSettings
 from src.camera.window import CameraPetWindow
 from src.vision.worker import VisionWorker, VisionSignal
 from src.pet.controller import PetController
+from src.pet.sound_manager import SoundManager
+from src.pet.gesture_mapper import lookup as gesture_lookup
 
 
 class AppOrchestrator:
@@ -32,8 +34,12 @@ class AppOrchestrator:
         # Wire signals
         self.controller.render_command.connect(self.window.update_pet)
         self.controller.hud_update.connect(self.window.update_hud)
-        # 注入 controller 到 window（PetOverlay 鼠标事件需要）
+        self.controller.audio_command.connect(self._on_audio_command)
+        # 注入 controller 到 window
         self.window._controller = self.controller
+
+        # 音频
+        self.sound = SoundManager()
 
         # Vision worker
         self.worker = VisionWorker(vision=vision)
@@ -65,6 +71,24 @@ class AppOrchestrator:
         if self.controller.last_render is None:
             # 初始：把桌宠放在窗口中心
             self.controller.update(VisionSignal(face_center=None, face_bbox_size=None))
+
+    def _on_audio_command(self, state_label: str, kwargs: dict) -> None:
+        """state_label 是 PetState.value 字符串."""
+        # 把 state 映射回 gesture label 用于查 GestureMapper
+        state_to_gesture = {
+            "thumb_down": "Thumb_Down",
+            "victory": "Victory",
+            "default_fly": "None",
+        }
+        gesture_label = state_to_gesture.get(state_label)
+        if gesture_label is None:
+            return
+        action = gesture_lookup(gesture_label)
+        if action.voice and self.vision is not None:
+            # 仅在状态变化时播放（避免循环触发）
+            if not hasattr(self, "_last_audio_state") or self._last_audio_state != state_label:
+                self._last_audio_state = state_label
+                self.sound.play_voice_for_action(gesture_label)
 
     def run(self) -> int:
         self.window.show()
