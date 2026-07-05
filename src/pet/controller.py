@@ -114,11 +114,31 @@ class PetController(QObject):
         if self._state == PetState.DEFAULT_FLY:
             self._tick_default_fly()
 
-        # 手势处理（spec §4.2）
-        if signal.gesture_label and signal.gesture_label != "None":
-            self._handle_gesture(signal.gesture_label)
+        # DRAG_PINCH 处理（spec §4.2）
+        if self._state == PetState.DRAG_PINCH:
+            if signal.pinch_active and signal.pinch_position:
+                # 跟随 pinch 位置
+                self._pet_pos = signal.pinch_position - QPoint(self._pet_size // 2, self._pet_size // 2)
+                # 钳制到窗口内
+                self._pet_pos.setX(max(0, min(self._pet_pos.x(), self._win_w - self._pet_size)))
+                self._pet_pos.setY(max(0, min(self._pet_pos.y(), self._win_h - self._pet_size)))
+            else:
+                # pinch 释放 → 回 DEFAULT_FLY
+                self._state = PetState.DEFAULT_FLY
+                self._current_target = self._face_center  # 飞向头部
+                if self._current_target:
+                    self._pet_pos = self._flight.step(self._pet_pos, self._current_target, dt=0.016)
+        elif signal.pinch_active and signal.pinch_position:
+            # 进入 DRAG_PINCH
+            self._state = PetState.DRAG_PINCH
+            self._pet_pos = signal.pinch_position - QPoint(self._pet_size // 2, self._pet_size // 2)
+            self._pinch_pos_last = signal.pinch_position
         else:
-            self._check_gesture_timeout()
+            # 手势处理（spec §4.2）
+            if signal.gesture_label and signal.gesture_label != "None":
+                self._handle_gesture(signal.gesture_label)
+            else:
+                self._check_gesture_timeout()
 
         # 触发 render（每帧 emit，方便 CameraPetWindow 接收）
         self._emit_render()

@@ -10,7 +10,7 @@ import cv2
 from PyQt6.QtCore import QThread, pyqtSignal, QPoint, QSize
 
 from src.config.settings import VisionSettings
-from src.vision.pipelines import FaceTracker
+from src.vision.pipelines import FaceTracker, PinchDetector
 
 
 @dataclass
@@ -38,6 +38,11 @@ class VisionWorker(QThread):
         self._face_tracker = FaceTracker(ema_alpha=0.5)
         self._landmarker = None
         self._gesture_recognizer = None
+        self._hand_landmarker = None
+        self._pinch_detector = PinchDetector(
+            distance_threshold=vision.pinch_distance_threshold,
+            hold_frames=vision.pinch_hold_frames,
+        )
 
     def stop(self) -> None:
         self._stopping = True
@@ -81,10 +86,30 @@ class VisionWorker(QThread):
         )
         return mp.tasks.vision.GestureRecognizer.create_from_options(options)
 
+    def _load_hand_landmarker(self):
+        """懒加载 HandLandmarker."""
+        import mediapipe as mp
+        from pathlib import Path
+
+        model_path = (
+            Path(__file__).resolve().parents[2]
+            / "assets" / "models" / "hand_landmarker.task"
+        )
+        if not model_path.exists():
+            raise FileNotFoundError(f"HandLandmarker model not found: {model_path}")
+
+        base_options = mp.tasks.BaseOptions(model_asset_path=str(model_path))
+        options = mp.tasks.vision.HandLandmarkerOptions(
+            base_options=base_options,
+            num_hands=1,
+        )
+        return mp.tasks.vision.HandLandmarker.create_from_options(options)
+
     def run(self) -> None:
         try:
             self._landmarker = self._load_landmarker()
             self._gesture_recognizer = self._load_gesture_recognizer()
+            self._hand_landmarker = self._load_hand_landmarker()
         except Exception as e:
             self.camera_error.emit(f"Model load failed: {e}")
             return
@@ -133,16 +158,21 @@ class VisionWorker(QThread):
                 gesture_result = self._gesture_recognizer.recognize_for_video(mp_image, ts_ms)
                 gesture_label = "None"
                 if gesture_result.gestures:
-                    top = gesture_result.gestures[0]  # 最多 1 手
+                    top = gesture_result.gestures[0]
                     if top:
                         gesture_label = top[0].category_name
+
+                # HandLandmarker + PinchDetector
+                hand_result = self._hand_landmarker.detect_for_video(mp_image, ts_ms)
+                hand_landmarks = hand_result.hand_landmarks[0] if hand_result.hand_landmarks else None
+                pinch_active, pinch_pos = self._pinch_detector.update(hand_landmarks, cam_w, cam_h)
 
                 signal = VisionSignal(
                     face_center=center,
                     face_bbox_size=size,
                     gesture_label=gesture_label,
-                    pinch_active=False,    # P4 接入
-                    pinch_position=None,
+                    pinch_active=pinch_active,
+                    pinch_position=pinch_pos,
                     timestamp_ms=ts_ms,
                 )
                 self.vision_update.emit(signal)
