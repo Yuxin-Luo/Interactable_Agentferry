@@ -11,7 +11,6 @@
 """
 from __future__ import annotations
 import math
-import random
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -111,6 +110,8 @@ class PetController(QObject):
         for k in ("pet_size_near", "pet_size_mid", "pet_size_far"):
             if k in overrides:
                 setattr(v, k, overrides[k])
+        if "head_exclusion_padding" in overrides:
+            v.head_exclusion_padding = overrides["head_exclusion_padding"]
 
     def update(self, signal: VisionSignal) -> None:
         """主线程 tick — 每帧调用一次（与 QTimer.timeout 绑定）."""

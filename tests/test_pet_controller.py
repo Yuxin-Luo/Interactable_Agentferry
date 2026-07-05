@@ -197,3 +197,17 @@ def test_apply_settings_unknown_keys_do_not_crash():
     c = PetController(vision=v)
     c.set_window_size(640, 360)
     c.apply_settings({"unknown_key": 123, "another": "foo"})  # must not raise
+
+
+def test_apply_settings_updates_head_exclusion_padding():
+    """head_exclusion_padding is forwarded to _vision and used by HeadExclusionZone."""
+    v = VisionSettings()
+    c = PetController(vision=v)
+    c.set_window_size(640, 360)
+
+    # Verify default value
+    assert v.head_exclusion_padding == 0.2  # spec default
+
+    # Override and check it propagates
+    c.apply_settings({"head_exclusion_padding": 0.6})
+    assert c._vision.head_exclusion_padding == 0.6
