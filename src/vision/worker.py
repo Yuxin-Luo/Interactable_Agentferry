@@ -36,7 +36,8 @@ class VisionWorker(QThread):
         self._vision = vision
         self._stopping = False
         self._face_tracker = FaceTracker(ema_alpha=0.5)
-        self._landmarker = None  # 在 run() 中懒加载
+        self._landmarker = None
+        self._gesture_recognizer = None
 
     def stop(self) -> None:
         self._stopping = True
@@ -62,11 +63,30 @@ class VisionWorker(QThread):
         )
         return mp.tasks.vision.FaceLandmarker.create_from_options(options)
 
+    def _load_gesture_recognizer(self):
+        """懒加载 GestureRecognizer."""
+        import mediapipe as mp
+        from pathlib import Path
+
+        model_path = (
+            Path(__file__).resolve().parents[2]
+            / "assets" / "models" / "gesture_recognizer.task"
+        )
+        if not model_path.exists():
+            raise FileNotFoundError(f"GestureRecognizer model not found: {model_path}")
+
+        base_options = mp.tasks.BaseOptions(model_asset_path=str(model_path))
+        options = mp.tasks.vision.GestureRecognizerOptions(
+            base_options=base_options,
+        )
+        return mp.tasks.vision.GestureRecognizer.create_from_options(options)
+
     def run(self) -> None:
         try:
             self._landmarker = self._load_landmarker()
+            self._gesture_recognizer = self._load_gesture_recognizer()
         except Exception as e:
-            self.camera_error.emit(f"FaceLandmarker load failed: {e}")
+            self.camera_error.emit(f"Model load failed: {e}")
             return
 
         cam_w, cam_h = self._vision.cam_resolution
@@ -109,10 +129,18 @@ class VisionWorker(QThread):
                     landmarks, frame_w=cam_w, frame_h=cam_h
                 )
 
+                # GestureRecognizer
+                gesture_result = self._gesture_recognizer.recognize_for_video(mp_image, ts_ms)
+                gesture_label = "None"
+                if gesture_result.gestures:
+                    top = gesture_result.gestures[0]  # 最多 1 手
+                    if top:
+                        gesture_label = top[0].category_name
+
                 signal = VisionSignal(
                     face_center=center,
                     face_bbox_size=size,
-                    gesture_label="None",  # P3 接入
+                    gesture_label=gesture_label,
                     pinch_active=False,    # P4 接入
                     pinch_position=None,
                     timestamp_ms=ts_ms,
