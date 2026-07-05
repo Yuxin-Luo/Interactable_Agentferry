@@ -82,6 +82,8 @@ class PetController(QObject):
         self._open_palm_index = 0
         self._last_gesture_ts: float = 0.0
         self._last_gesture_change_ts = time.time()
+        # 最近一次 MediaPipe 检测到的原始手势（"None" = 没检测到手）
+        self._last_gesture_label: str = "None"
 
     @property
     def state(self) -> PetState:
@@ -115,6 +117,7 @@ class PetController(QObject):
 
     def update(self, signal: VisionSignal) -> None:
         """主线程 tick — 每帧调用一次（与 QTimer.timeout 绑定）."""
+        self._last_gesture_label = signal.gesture_label or "None"
         self._face_center = signal.face_center
         if signal.face_bbox_size:
             self._face_bbox = QRect(
@@ -229,18 +232,24 @@ class PetController(QObject):
         cmd = RenderCommand(position=self._pet_pos, gif_path=gif, scale=scale)
         self._last_render = cmd
         self.render_command.emit(cmd.position, cmd.gif_path, cmd.scale)
-        # HUD：显示原始 gesture_label（而非 state.value）
-        hud_label = {
-            PetState.DEFAULT_FLY: "—",
-            PetState.OPEN_PALM: "Open_Palm",
-            PetState.THUMB_UP: "Thumb_Up",
-            PetState.THUMB_DOWN: "Thumb_Down",
-            PetState.VICTORY: "Victory",
-            PetState.FIST: "Closed_Fist",
-            PetState.POINTING: "Pointing_Up",
-            PetState.DRAG_MOUSE: "(drag)",
-            PetState.DRAG_PINCH: "Pinch",
-        }.get(self._state, "?")
+        # HUD：DEFAULT_FLY 时若 MediaPipe 已识别到手势，显示该手势标签（用户能立即看到识别在工作）
+        # 否则保持 "—" 表示无活动
+        if self._state == PetState.DEFAULT_FLY:
+            if self._last_gesture_label and self._last_gesture_label != "None":
+                hud_label = self._last_gesture_label
+            else:
+                hud_label = "—"
+        else:
+            hud_label = {
+                PetState.OPEN_PALM: "Open_Palm",
+                PetState.THUMB_UP: "Thumb_Up",
+                PetState.THUMB_DOWN: "Thumb_Down",
+                PetState.VICTORY: "Victory",
+                PetState.FIST: "Closed_Fist",
+                PetState.POINTING: "Pointing_Up",
+                PetState.DRAG_MOUSE: "(drag)",
+                PetState.DRAG_PINCH: "Pinch",
+            }.get(self._state, "?")
         self.hud_update.emit(hud_label)
         self.audio_command.emit(self._state.value, {"loop": True})
 

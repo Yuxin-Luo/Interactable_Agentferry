@@ -8,6 +8,8 @@ from typing import Optional
 
 import cv2
 from PyQt6.QtCore import QThread, pyqtSignal, QPoint, QSize
+import logging
+_log = logging.getLogger("interactable_agentferry.vision")
 from PyQt6.QtGui import QImage
 
 from src.config.settings import VisionSettings
@@ -129,6 +131,7 @@ class VisionWorker(QThread):
         import mediapipe as mp
 
         consecutive_error_count = 0
+        debug_frame_counter = 0
         try:
             while not self._stopping:
                 ok, frame_bgr = cap.read()
@@ -140,6 +143,7 @@ class VisionWorker(QThread):
                     time.sleep(0.01)
                     continue
                 consecutive_error_count = 0
+                debug_frame_counter += 1
 
                 # Emit BGR→RGB QImage for camera preview (before MediaPipe processing)
                 frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
@@ -164,20 +168,37 @@ class VisionWorker(QThread):
                 # GestureRecognizer
                 gesture_result = self._gesture_recognizer.recognize_for_video(mp_image, ts_ms)
                 gesture_label = "None"
+                gesture_hand_pos: Optional[QPoint] = None
                 if gesture_result.gestures:
                     top = gesture_result.gestures[0]
                     if top:
                         gesture_label = top[0].category_name
+                        # 取归一化手心坐标 → 像素坐标
+                        hlm = gesture_result.hand_landmarks[0] if gesture_result.hand_landmarks else None
+                        if hlm:
+                            # 手腕 (wrist, landmark 0) 作为手位置
+                            wrist = hlm[0]
+                            gesture_hand_pos = QPoint(int(wrist.x * cam_w), int(wrist.y * cam_h))
 
                 # HandLandmarker + PinchDetector
                 hand_result = self._hand_landmarker.detect_for_video(mp_image, ts_ms)
                 hand_landmarks = hand_result.hand_landmarks[0] if hand_result.hand_landmarks else None
                 pinch_active, pinch_pos = self._pinch_detector.update(hand_landmarks, cam_w, cam_h)
 
+                # 调试 log：每 30 帧打印一次（避免刷屏）
+                if debug_frame_counter % 30 == 0:
+                    face_ok = bool(landmarks)
+                    hand_ok = bool(hand_landmarks)
+                    _log.info(
+                        "frame=%d face=%s hand=%s gesture=%s pinch=%s",
+                        debug_frame_counter, face_ok, hand_ok, gesture_label, pinch_active,
+                    )
+
                 signal = VisionSignal(
                     face_center=center,
                     face_bbox_size=size,
                     gesture_label=gesture_label,
+                    gesture_hand_pos=gesture_hand_pos,
                     pinch_active=pinch_active,
                     pinch_position=pinch_pos,
                     timestamp_ms=ts_ms,

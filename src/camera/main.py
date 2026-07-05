@@ -6,7 +6,7 @@ import time
 
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QImage
+from PyQt6.QtGui import QImage, QGuiApplication
 
 from src.config.settings import VisionSettings
 from src.camera.window import CameraPetWindow
@@ -25,12 +25,22 @@ class AppOrchestrator:
         self.app = QApplication.instance() or QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(True)
 
-        # Window size: 90% of cam resolution
-        cw, ch = vision.cam_resolution
-        win_w = int(cw * 0.9)
-        win_h = int(ch * 0.9)
-
+        # Window size: 90% of primary screen (not cam resolution — cameras
+        # are usually 720p/1080p but screens are larger).
+        screen = QGuiApplication.primaryScreen()
+        if screen is not None:
+            sw, sh = screen.size().width(), screen.size().height()
+        else:
+            sw, sh = 1280, 720
+        win_w = int(sw * 0.9)
+        win_h = int(sh * 0.9)
+        # Move window to center of screen
         self.window = CameraPetWindow(win_w=win_w, win_h=win_h)
+        if screen is not None:
+            self.window.move(
+                (sw - win_w) // 2,
+                (sh - win_h) // 2,
+            )
         self.controller = PetController(vision=vision)
         self.controller.set_window_size(win_w, win_h)
 

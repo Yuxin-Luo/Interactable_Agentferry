@@ -36,7 +36,7 @@ class PetOverlay(QLabel):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setFixedSize(128, 128)  # 默认尺寸
+        self.setFixedSize(192, 192)  # 默认尺寸（base scale=1.5 → 288，远更易看见）
         from PyQt6.QtGui import QMovie
         self._movie = None
         self._current_gif_path: str | None = None
