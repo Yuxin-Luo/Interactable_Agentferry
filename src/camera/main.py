@@ -32,6 +32,8 @@ class AppOrchestrator:
         # Wire signals
         self.controller.render_command.connect(self.window.update_pet)
         self.controller.hud_update.connect(self.window.update_hud)
+        # 注入 controller 到 window（PetOverlay 鼠标事件需要）
+        self.window._controller = self.controller
 
         # Vision worker
         self.worker = VisionWorker(vision=vision)

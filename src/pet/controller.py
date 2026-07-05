@@ -216,6 +216,33 @@ class PetController(QObject):
         self.hud_update.emit(self._state.value)
         self.audio_command.emit(self._state.value, {"loop": True})
 
+    def start_mouse_drag(self) -> None:
+        """PetOverlay mousePressEvent 调用."""
+        if self._state == PetState.DRAG_PINCH:
+            return  # pinch 优先
+        self._state = PetState.DRAG_MOUSE
+
+    def update_mouse_drag(self, pos: QPoint) -> None:
+        """PetOverlay mouseMoveEvent 调用."""
+        if self._state != PetState.DRAG_MOUSE:
+            return
+        self._pet_pos = pos
+        # 钳制到窗口内
+        self._pet_pos.setX(max(0, min(self._pet_pos.x(), self._win_w - self._pet_size)))
+        self._pet_pos.setY(max(0, min(self._pet_pos.y(), self._win_h - self._pet_size)))
+
+    def end_mouse_drag(self) -> None:
+        """PetOverlay mouseReleaseEvent 调用."""
+        if self._state != PetState.DRAG_MOUSE:
+            return
+        self._state = PetState.DEFAULT_FLY
+        # fly-back 目标：当前 face 位置
+        if self._face_center:
+            self._current_target = QPoint(
+                self._face_center.x() - self._pet_size // 2,
+                self._face_center.y() - self._pet_size // 2,
+            )
+
     def _gif_for_state(self) -> str:
         if self._state == PetState.OPEN_PALM:
             # 轮播 idle1~4

@@ -46,17 +46,25 @@ class PetOverlay(QLabel):
         if ev.button() == Qt.MouseButton.LeftButton:
             self._dragging = True
             self._drag_offset = ev.position().toPoint()
+            # 通知 controller
+            if hasattr(self.parent(), "_controller"):
+                self.parent()._controller.start_mouse_drag()
             ev.accept()
 
     def mouseMoveEvent(self, ev: QMouseEvent) -> None:
         if self._dragging:
             new_pos = self.parent().mapFromGlobal(ev.globalPosition().toPoint()) - self._drag_offset
-            self.move(new_pos)
+            if hasattr(self.parent(), "_controller"):
+                self.parent()._controller.update_mouse_drag(new_pos)
+            else:
+                self.move(new_pos)
             ev.accept()
 
     def mouseReleaseEvent(self, ev: QMouseEvent) -> None:
         if ev.button() == Qt.MouseButton.LeftButton and self._dragging:
             self._dragging = False
+            if hasattr(self.parent(), "_controller"):
+                self.parent()._controller.end_mouse_drag()
             ev.accept()
 
 
