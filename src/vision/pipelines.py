@@ -63,3 +63,39 @@ class FaceTracker:
             self._smoothed_center = QPoint(int(sx), int(sy))
             self._smoothed_size = QSize(int(sw), int(sh))
         return (self._smoothed_center, self._smoothed_size)
+
+
+# ============== PinchDetector ==============
+
+class PinchDetector:
+    """基于 thumb_tip(4) ↔ index_tip(8) 归一化距离 + N 帧持续确认."""
+
+    def __init__(self, distance_threshold: float = 0.05, hold_frames: int = 3):
+        self._threshold = distance_threshold
+        self._hold = hold_frames
+        self._consecutive_close = 0
+
+    def reset(self) -> None:
+        self._consecutive_close = 0
+
+    def update(
+        self, hand_landmarks, frame_w: int, frame_h: int
+    ) -> Tuple[bool, Optional[QPoint]]:
+        if not hand_landmarks or len(hand_landmarks) < 9:
+            self._consecutive_close = 0
+            return (False, None)
+        thumb = hand_landmarks[4]
+        index = hand_landmarks[8]
+        dx = thumb.x - index.x
+        dy = thumb.y - index.y
+        dist = (dx * dx + dy * dy) ** 0.5
+        if dist < self._threshold:
+            self._consecutive_close += 1
+        else:
+            self._consecutive_close = 0
+        active = self._consecutive_close >= self._hold
+        if active:
+            mx = (thumb.x + index.x) / 2 * frame_w
+            my = (thumb.y + index.y) / 2 * frame_h
+            return (True, QPoint(int(mx), int(my)))
+        return (False, None)
